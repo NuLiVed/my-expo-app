@@ -5,22 +5,25 @@ import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 export default function IndicatorCard({ type, value, unit, icon, status, optimal, timestamp, trend }) {
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
+      <View style={styles.topRow}>
         <MaterialCommunityIcons name={icon} size={24} color="#E67E22" />
-        <View style={styles.status}>
-          <View style={[styles.dot, status === 'Live' && styles.live]} />
-          <Text style={styles.statusText}>{status}</Text>
+        <View style={styles.rightTop}>
+          <View style={styles.status}>
+            <View style={[styles.dot, status === 'Live' && styles.live]} />
+            <Text style={styles.statusText}>{status}</Text>
+          </View>
+          {trend && (
+            <View style={styles.trend}>
+              <Feather name={trend.direction === 'up' ? 'arrow-up' : 'arrow-down'} size={16} color={trend.color} />
+              <Text style={[styles.trendText, { color: trend.color }]}>{trend.value}{unit}</Text>
+            </View>
+          )}
         </View>
       </View>
+
       <Text style={styles.value}>{value}{unit}</Text>
       {optimal && <Text style={styles.optimal}>Optimal range: {optimal}</Text>}
       {timestamp && <Text style={styles.timestamp}>Last updated: {timestamp}</Text>}
-      {trend && (
-        <View style={styles.trend}>
-          <Feather name={trend.direction === 'up' ? 'arrow-up' : 'arrow-down'} size={16} color={trend.color} />
-          <Text style={[styles.trendText, { color: trend.color }]}>{trend.value}{unit}</Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -38,15 +41,19 @@ const styles = StyleSheet.create({
     elevation: 3,
     flex: 1,
   },
-  header: {
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  rightTop: {
+    alignItems: 'flex-end',
   },
   status: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
   dot: {
     width: 8,
@@ -84,9 +91,6 @@ const styles = StyleSheet.create({
   trend: {
     flexDirection: 'row',
     alignItems: 'center',
-    position: 'absolute',
-    top: 16,
-    right: 16,
   },
   trendText: {
     fontSize: 12,
