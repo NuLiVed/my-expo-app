@@ -11,14 +11,19 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import InputField from './InputField';
 import ButtonPrimary from './ButtonPrimary';
 
-export default function SignInModal({ visible, onClose, onSignUpPress, onSuccess }) {
+export default function SignUpModal({ visible, onClose, onSignInPress, onSuccess }) {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
 
-  const handleSignIn = () => {
-    console.log('Signed in with:', { email, password, rememberMe });
-    onSuccess();
+  const handleSignUp = () => {
+    if (agreeTerms) {
+      console.log('Signed up with:', { name, email, password });
+      onSuccess();
+    } else {
+      alert('Please agree to the terms.');
+    }
   };
 
   return (
@@ -26,12 +31,17 @@ export default function SignInModal({ visible, onClose, onSignUpPress, onSuccess
       <View style={styles.overlay}>
         <View style={styles.container}>
           <Text style={styles.title}>Shelvy</Text>
-          <Text style={styles.welcome}>Welcome back!</Text>
+          <Text style={styles.welcome}>Join the bakery!</Text>
 
           <ScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 20 }}
           >
+            <InputField
+              placeholder="👤 Full Name"
+              value={name}
+              onChangeText={setName}
+            />
             <InputField
               placeholder="📧 Email Address"
               value={email}
@@ -44,22 +54,28 @@ export default function SignInModal({ visible, onClose, onSignUpPress, onSuccess
               secureTextEntry
             />
 
-            {/* Remember Me */}
-            <Pressable
-              onPress={() => setRememberMe(!rememberMe)}
-              style={styles.checkboxRow}
-            >
-              <View style={[styles.checkbox, rememberMe && styles.checked]} />
-              <Text style={styles.checkboxLabel}>Remember me</Text>
-            </Pressable>
+            {/* Terms Agreement */}
+            <View style={styles.termsContainer}>
+              <Text style={styles.termsText}>
+                📋 By joining our bakery family, I agree to the{' '}
+                <Text style={styles.link}>Terms of Service</Text> and{' '}
+                <Text style={styles.link}>Privacy Policy</Text>
+              </Text>
+              <Pressable
+                onPress={() => setAgreeTerms(!agreeTerms)}
+                style={styles.checkboxContainer}
+              >
+                <View style={[styles.checkbox, agreeTerms && styles.checked]} />
+              </Pressable>
+            </View>
 
-            <ButtonPrimary label="Sign In" onPress={handleSignIn} />
+            <ButtonPrimary label="Sign Up" onPress={handleSignUp} />
 
-            {/* New to Shelvy */}
-            <Pressable style={styles.createAccount} onPress={onSignUpPress}>
-              <Text style={styles.createText}>
-                New to Shelvy?{' '}
-                <Text style={styles.createLink}>Create an account</Text>
+            {/* Already have account */}
+            <Pressable style={styles.signInAccount} onPress={onSignInPress}>
+              <Text style={styles.signInText}>
+                Already have an account?{' '}
+                <Text style={styles.signInLink}>Sign In</Text>
               </Text>
             </Pressable>
 
@@ -105,10 +121,26 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     fontFamily: 'System',
   },
-  checkboxRow: {
+  termsContainer: {
+    backgroundColor: '#FFF8F4',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#A0522D',
+    fontFamily: 'System',
+  },
+  link: {
+    color: '#E67E22',
+    textDecorationLine: 'underline',
+  },
+  checkboxContainer: {
+    marginLeft: 8,
   },
   checkbox: {
     width: 18,
@@ -116,26 +148,20 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#E67E22',
     borderRadius: 4,
-    marginRight: 8,
   },
   checked: {
     backgroundColor: '#E67E22',
   },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#A0522D',
-    fontFamily: 'System',
-  },
-  createAccount: {
+  signInAccount: {
     alignItems: 'center',
     marginTop: 12,
   },
-  createText: {
+  signInText: {
     color: '#A0522D',
     fontSize: 14,
     fontFamily: 'System',
   },
-  createLink: {
+  signInLink: {
     color: '#E67E22',
     fontWeight: 'bold',
     textDecorationLine: 'underline',

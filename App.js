@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import SignInModal from './Components/SignInModal';
+import SignUpModal from './Components/SignUpModal';
+import DashboardScreen from './Components/DashboardScreen';
 
 export default function App() {
   const [showSignIn, setShowSignIn] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  if (loggedIn) {
+    return <DashboardScreen onLogout={() => setLoggedIn(false)} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -21,7 +29,7 @@ export default function App() {
 
         <Pressable
           style={({ pressed }) => [styles.button, styles.signUpButton, pressed && styles.pressed]}
-          onPress={() => alert('Sign Up Under Construction! 🚧')}
+          onPress={() => setShowSignUp(true)}
         >
           <Text style={styles.signUpText}>Sign Up</Text>
         </Pressable>
@@ -33,7 +41,25 @@ export default function App() {
         onClose={() => setShowSignIn(false)}
         onSignUpPress={() => {
           setShowSignIn(false);
-          alert('Sign Up modal will open!');
+          setShowSignUp(true);
+        }}
+        onSuccess={() => {
+          setShowSignIn(false);
+          setLoggedIn(true);
+        }}
+      />
+
+      {/*Sign up*/}
+      <SignUpModal
+        visible={showSignUp}
+        onClose={() => setShowSignUp(false)}
+        onSignInPress={() => {
+          setShowSignUp(false);
+          setShowSignIn(true);
+        }}
+        onSuccess={() => {
+          setShowSignUp(false);
+          setLoggedIn(true);
         }}
       />
     </View>
@@ -43,7 +69,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f0e6', 
+    backgroundColor: '#f5f0e6',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -60,7 +86,7 @@ const styles = StyleSheet.create({
     color: '#6b3e00',
     fontFamily: 'monospace',
     marginBottom: 10,
-    textAlign: 'justify',
+    textAlign: 'center',
   },
   buttonContainer: {
     width: '70%',
@@ -76,6 +102,8 @@ const styles = StyleSheet.create({
   },
   signUpButton: {
     backgroundColor: '#e0d9d0',
+    borderWidth: 1,
+    borderColor: '#c46a00',
   },
   pressed: {
     opacity: 0.8,

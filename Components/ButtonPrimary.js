@@ -11,7 +11,7 @@ export default function ButtonPrimary({ label, onPress }) {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#c46a00',
+    backgroundColor: '#E67E22',
     borderRadius: 20,
     paddingVertical: 12,
     alignItems: 'center',
@@ -24,6 +24,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 18,
-    fontFamily: 'monospace',
+    fontFamily: 'System',
   },
 });

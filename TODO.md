@@ -1,0 +1,7 @@
+- [x] Update package.json to add @expo/vector-icons
+- [x] Update ButtonPrimary.js: Change colors to #E67E22 background, white text; adjust font to rounded/playful
+- [x] Update InputField.js: Add focus styling with #E67E22 border
+- [x] Update SignInModal.js: Update colors (#F5F5F5 bg, #A0522D text, white card), add icons, adjust layout
+- [x] Create SignUpModal.js: Form with name, email, password, terms checkbox, using updated components
+- [x] Update App.js: Integrate SignUpModal, update styling to match theme
+- [x] Install dependencies and test UI

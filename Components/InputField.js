@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 
 export default function InputField({ placeholder, value, onChangeText, secureTextEntry }) {
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <View style={styles.container}>
       <TextInput
-        style={styles.input}
+        style={[styles.input, isFocused && styles.inputFocused]}
         placeholder={placeholder}
         placeholderTextColor="#b8a17f"
         value={value}
@@ -13,6 +15,8 @@ export default function InputField({ placeholder, value, onChangeText, secureTex
         secureTextEntry={secureTextEntry}
         multiline={false}
         numberOfLines={1}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
       />
     </View>
   );
@@ -32,5 +36,8 @@ const styles = StyleSheet.create({
     height: 48,
     fontSize: 16,
     color: '#4e3b1f',
+  },
+  inputFocused: {
+    borderColor: '#E67E22',
   },
 });
