@@ -38,6 +38,13 @@
 2. Re-check reading; if still off, apply ratiometric formula with measured `V_SUPPLY` (buck voltage).
 3. Only if a small steady offset remains, add 2-point calibration.
 
+### ⭐ BREAKTHROUGH (end of session)
+- After moving sensor **T→P34, RH→P35**, the reading became NEARLY CORRECT: **28.7°C vs real 26.5°C** (~2° off), humidity 78.6% vs real 70–76%. **Wiring fix WORKED — sensor/wiring/code are all GOOD.**
+- **KEY:** correct reading happens with the **PROTOTYPE POWER OFF and ESP32 on USB only.** When the prototype main power was ON, readings were junk (57–123°C).
+- => The culprit is the **prototype power system (likely the BUCK CONVERTER or Peltier current on the shared supply)**, NOT the sensor.
+- A **small "pop" sound** was heard and the ESP32 went dead for ~9 min (came back on USB power). **Suspect the buck converter popped.** DO NOT re-power the prototype until the buck is checked (multimeter: output must be exactly 3.3V).
+- **Next fixes:** (1) power sensor VCC from ESP32's clean **3V3** pin, not the buck raw output; (2) check/replace buck converter; (3) once stable on prototype power, add a small ~2° calibration offset (now justified since reading is stable+close).
+
 ### Still open
 - User to verify exact terminals under the T and RH wires, then move to P34/P35.
 - ESP32 #2 (defense-day hotspot version): change `WIFI_SSID`/`WIFI_PASS` to the hotspot; handle channel gotcha.
