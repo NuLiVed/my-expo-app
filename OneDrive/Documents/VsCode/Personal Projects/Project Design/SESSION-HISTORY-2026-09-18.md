@@ -80,6 +80,47 @@
 - ESP32 chip identity confirmed healthy during connect: ESP32-D0WD-V3 rev v3.1,
   MAC e0:8c:fe:f9:c2:ec (so USB link + chip comms are OK; it's the attached hardware).
 
+### ⭐ RESOLUTION (late night) — reading works; remaining issue is SHARED POWER
+
+**Hardware status:** 2 of 3 ESP32s FRIED (get hot = they took overvoltage/abuse earlier). Running
+on the **last working spare** (ESP32-D0WD-V3, MAC e0:8c:fe:f9:c2:ec). Protect it.
+
+**Sensor conversion — SETTLED (I flip-flopped, this is final):** the DFR0588 board conditions its
+output to a **FIXED 0.3–2.7 V window** — the ORIGINAL fixed formula is correct, NOT ratiometric.
+Proven with a multimeter vs the FY-12 reference: **Vout 1.31 V → 29.4 C (real 30.1)**, **2.14 V → 76.9%
+(real 86)**. Calibrated in v5: `TEMP_CAL_OFFSET = -1.1`, `HUMI_CAL_OFFSET = +16.3`. Sensor VCC on the
+**3V3 pin** (measured 3.34 V). New DFRobot sensor in use.
+
+**Ground checked = CLEAN:** voltage between sensor GND and ESP32 GND = **0 V** → NOT ground bounce.
+
+**ROOT CAUSE of the remaining error (25 C reads as ~57 C):** the ESP32/buck and the Peltiers/fans
+**share one current path on the soldering board.** When the Peltiers pull ~10–20 A, the shared 12 V
+line **sags**, the buck's supply drops, and the sensor's output rides up (temp pin measured jumping
+**1.31 V → 1.72 V** the moment the system turns on). Confirmed by: correct on USB (no Peltiers),
+wrong only when Peltiers run, and the voltage tracks the load. It is **pulling** (current-draw sag),
+with smaller **pushing** spikes at relay switch-off. NOT a sensor accuracy problem.
+
+**FIX PLAN (user buying parts in the morning, then wants to un-share the wires):**
+1. **Un-share the buck feed** — run dedicated wires from the **PSU terminals straight to the buck IN**,
+   separate from the Peltier/fan feed (star topology; all grounds meet only at the PSU). Main structural fix.
+2. **1000µF (25V) + 100nF (50V) across the buck OUTPUT** — reservoir that fills the sag. Main cap fix.
+3. **Snubber 100Ω (½W) + 100nF (100V) across relay COM↔NC** (contact snubber, kills switch-off arc) — if needed.
+4. **100nF ×2 on P34→GND, P35→GND** — only if noise still gets through.
+5. **100nF ×2 across fans** — optional (brushless commutation noise).
+- Install order: un-share + buck caps → TEST → snubbers → signal caps → fan caps.
+- **FREE confirm test first:** toggle Peltiers OFF vs ON — reading should track them (off≈25 C, on≈57 C)
+  = proves it's the current, not the sensor. Also watch the buck output sag when Peltiers switch on.
+
+**Shopping list:** 1000µF 25V ×2, 100nF(104) 50V ×10, 100nF(104) 100V ×4, 100Ω ½W ×4, + decent wire.
+(1kΩ signal resistors NOT needed for the simple version.)
+
+**Visual wiring diagram (artifact):** https://claude.ai/artifact/9RhJYR2ShYBWrZUc6aWbLn
+(shows the 4 filter install points + parts + order.)
+
+**Component roles (plain):** capacitor = voltage shock-absorber/reservoir (smooths sag, drains fast
+noise); resistor in the snubber = damps the cap so it absorbs the switch spike gently.
+
 ### Reminders
 - Never plug USB + buck 5V at the same time (backfeed can damage the laptop port).
+- Flash the ESP32 BARE (off the expansion board) — attached relays/buck block flash writes.
 - `.ino` contains WiFi passwords + DEVICE_SECRET → NEVER pushed to the public repo.
