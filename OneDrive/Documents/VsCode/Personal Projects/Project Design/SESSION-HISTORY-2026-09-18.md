@@ -65,6 +65,21 @@
   (4) mAP is computed by YOLO's own val(), not fabricated — check whether the "50%" was mAP50 (weak)
   or mAP50-95 (actually decent for seg).
 
+### ⚠️ NEW FINDING (end of session) — FLASH BARE
+- Upload started FAILING with: `Warning: Failed to communicate with the flash chip...
+  removing any other hardware connected to IOs` and `A fatal error occurred: Serial data
+  stream stopped` → `Failed uploading: exit status 2`.
+- Cause: the ESP32 was still seated on the EXPANSION BOARD with the buck + relays physically
+  wired to its pins. Even with the buck OFF, its output caps load the 5V rail and the relays
+  load the GPIOs; that (plus board routing to SD2/SD3 flash pins) blocks flash read/write.
+- **FIX (do this FIRST next session): flash the ESP32 completely BARE** — pull it OFF the
+  expansion board, USB only, nothing wired to any pin, Erase-All-Flash ON, then upload.
+  Reseat on the board only AFTER it boots. Flashing needs bare pins; normal RUNNING with the
+  board attached is fine.
+- Rule reinforced: only ONE power source at a time (USB xor buck), never both.
+- ESP32 chip identity confirmed healthy during connect: ESP32-D0WD-V3 rev v3.1,
+  MAC e0:8c:fe:f9:c2:ec (so USB link + chip comms are OK; it's the attached hardware).
+
 ### Reminders
 - Never plug USB + buck 5V at the same time (backfeed can damage the laptop port).
 - `.ino` contains WiFi passwords + DEVICE_SECRET → NEVER pushed to the public repo.
