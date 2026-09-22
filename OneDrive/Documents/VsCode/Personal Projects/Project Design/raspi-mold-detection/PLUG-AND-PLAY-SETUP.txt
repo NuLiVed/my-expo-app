@@ -1,0 +1,87 @@
+========================================================================
+SHELVY  —  PI PLUG-AND-PLAY SETUP  (auto-join Wi-Fi + auto-start on boot)
+========================================================================
+Goal: power the Pi ON → it joins your phone hotspot by itself → starts
+mold detection by itself → posts its CURRENT IP to the backend so the
+app's live feed "just works", no typing IPs.
+
+Do this ONCE on the Pi (needs monitor+keyboard since SSH is off).
+
+------------------------------------------------------------------------
+WHY THE LIVE FEED WAS BLANK
+------------------------------------------------------------------------
+The app gets the camera's address from the backend. The Pi posts
+"http://<its-ip>:8080/stream.mjpg" every ~30s. If the Pi isn't running,
+or can't reach the internet, the backend keeps an OLD address and the
+phone can't reach it. Also: the PHONE and the PI must be on the SAME
+Wi-Fi/hotspot, or the phone can't open the Pi's stream.
+
+Fix = everyone (phone-hotspot + Pi + ESP32) on ONE network that also has
+internet. The phone's hotspot is perfect: the phone keeps mobile-data
+internet (for the app -> Vercel) AND is on the same LAN as the Pi.
+
+========================================================================
+STEP 1 — copy the files to the Pi
+========================================================================
+On the LAPTOP, in the folder that has version4.onnx + detect_pi.py:
+    python -m http.server 8090
+
+On the PI:
+    mkdir -p /home/nuli/shelvy && cd /home/nuli/shelvy
+    wget http://<LAPTOP_IP>:8090/version4.onnx
+    wget http://<LAPTOP_IP>:8090/detect_pi.py
+    wget http://<LAPTOP_IP>:8090/shelvy-detect.service
+(find <LAPTOP_IP> with `ipconfig` on the laptop — the 192.168.x.x one)
+
+========================================================================
+STEP 2 — auto-join the phone hotspot on boot  (Raspberry Pi OS Bookworm)
+========================================================================
+Bookworm uses NetworkManager (nmcli). Add your phone hotspot and give it
+the HIGHEST priority so the Pi prefers it when it's on:
+
+    # --- your phone hotspot (edit SSID + PASSWORD) ---
+    sudo nmcli connection add type wifi con-name shelvyapp ssid "shelvyapp"
+    sudo nmcli connection modify shelvyapp wifi-sec.key-mgmt wpa-psk wifi-sec.psk "YOUR_HOTSPOT_PASSWORD"
+    sudo nmcli connection modify shelvyapp connection.autoconnect yes connection.autoconnect-priority 100
+
+    # --- fallbacks (home / venue router), lower priority ---
+    sudo nmcli connection modify "preconfigured" connection.autoconnect-priority 10  2>/dev/null || true
+
+Verify:
+    nmcli -f NAME,AUTOCONNECT,AUTOCONNECT-PRIORITY connection show
+
+TIP: name the phone hotspot EXACTLY "shelvyapp" (matches the ESP32
+firmware) so both the Pi and the ESP32 auto-join the same hotspot.
+
+========================================================================
+STEP 3 — auto-start detection on boot
+========================================================================
+    sudo cp /home/nuli/shelvy/shelvy-detect.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now shelvy-detect
+
+Check it's alive:
+    systemctl status shelvy-detect        # should say "active (running)"
+    journalctl -u shelvy-detect -f        # live logs; look for [API] reported...
+
+The service waits for internet before starting, restarts on crash, and
+detect_pi.py re-checks its IP every report — so if the hotspot comes up
+late, the live-feed URL self-heals within one cycle.
+
+========================================================================
+DEMO ORDER (every time)
+========================================================================
+1. Phone: turn ON the "shelvyapp" hotspot (keep mobile data ON).
+2. Power the Pi (and ESP32). Wait ~40s.
+3. Open the app. Live feed + mold status should appear within ~30s.
+   Temp/humidity appears once the ESP32 posts.
+
+If the live feed still won't load on the phone hotspot: some Android
+hotspots isolate clients ("AP isolation"), which blocks the phone from
+opening the Pi's stream. Workaround = use a normal Wi-Fi router that
+everyone joins (add it in STEP 2), or test the feed from a second phone.
+
+QUICK CHECK the Pi is reporting (from any internet-connected machine):
+    curl https://shelvy-backend.vercel.app/api/mold-alerts/esp32-01/latest
+The "ts" should be seconds old and streamUrl should show the Pi's
+current hotspot IP (e.g. 192.168.43.x on many phone hotspots).

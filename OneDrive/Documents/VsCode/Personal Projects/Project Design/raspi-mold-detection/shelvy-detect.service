@@ -1,0 +1,18 @@
+[Unit]
+Description=Shelvy bread mold detection (v4)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Waits for a real network route before starting, then keeps retrying if Wi-Fi
+# comes up late. detect_pi.py re-resolves its IP on every report, so a late
+# Wi-Fi join / hotspot connection self-heals the live-feed URL.
+ExecStartPre=/bin/sh -c 'until ping -c1 -W2 8.8.8.8 >/dev/null 2>&1; do sleep 2; done'
+ExecStart=/usr/bin/python3 /home/nuli/shelvy/detect_pi.py --model /home/nuli/shelvy/version4.onnx --size 640 --conf 0.20 --mold-max-intensity 255 --api https://shelvy-backend.vercel.app --secret dev-device-secret-please-change
+Restart=always
+RestartSec=5
+User=nuli
+WorkingDirectory=/home/nuli/shelvy
+
+[Install]
+WantedBy=multi-user.target
