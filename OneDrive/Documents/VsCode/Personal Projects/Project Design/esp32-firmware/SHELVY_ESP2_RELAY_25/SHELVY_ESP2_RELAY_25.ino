@@ -9,11 +9,12 @@
 // it hits 25.0C, then clicks OFF for 30s, then cools again. This actually
 // demonstrates the Peltier switching (unlike 27.5 which sits off at 26.5).
 //
-// WIRING:
-//   Relay:  IN1->GPIO32  IN2->GPIO33   DC+ ->12V(+)  DC- ->12V(-)
-//           high/low jumper: S1->High, S2->High   (this board energizes on HIGH)
-//           load on COM + NC (cooling ON by default; opens/OFF at 25.0C)
-//   Power:  PSU 12V -> Buck(5V) -> ESP32 5V/VIN
+// WIRING (BLUE 6-CH OPTO-ISOLATED board, 2 grounds):
+//   Input header (8-pin):  IN1->GPIO32  IN2->GPIO33   VCC->ESP32 5V   GND->ESP32 GND
+//   Power header (3-pin):   JD-VCC->12V(+)   GND->12V(-)    (REMOVE the jumper cap)
+//   Load on COM + NC (cooling ON by default; opens/OFF at 25.0C)
+//   Power:  PSU 12V -> Buck(5.0V) -> ESP32 5V/VIN
+//   Opto board triggers on LOW -> RELAY_BOARD_ACTIVE_LOW = true
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -23,7 +24,7 @@
 #include <ArduinoJson.h>
 
 // ---- RELAY ----
-const bool RELAY_BOARD_ACTIVE_LOW = false;  // this board energizes on HIGH -> cooling ON = de-energized (NC closed)
+const bool RELAY_BOARD_ACTIVE_LOW = true;   // BLUE OPTO board = active-LOW (GPIO LOW = relay ON)
 const bool RELAY_NC[2] = { true, true };   // load on NC -> cooling ON by default
 const int PIN_PELTIER_A = 32;
 const int PIN_PELTIER_B = 33;
@@ -38,6 +39,7 @@ const uint32_t DATA_STALE_MS   = 30000;   // if temp older than 30s -> treat as 
 // ---- NETWORK ----
 struct WifiCred { const char* ssid; const char* pass; };
 const WifiCred WIFI_NETWORKS[] = {
+  { "Bawal Connect! 5g", "12345678" },   // renamed hotspot (all 3 devices join this)
   { "Bawal  Connect!", "@Cute@@KamE" },
   { "pd-shelvy",       "12345678" },
   { "shelvyapp",       "PUT_SHELVYAPP_PASSWORD_HERE" },

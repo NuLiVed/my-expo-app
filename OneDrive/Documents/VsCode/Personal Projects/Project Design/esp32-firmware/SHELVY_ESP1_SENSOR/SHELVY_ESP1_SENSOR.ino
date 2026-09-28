@@ -37,6 +37,7 @@ float voltsToHumidity(float v){ return HUMI_RANGE_MIN + (v-V_OUT_MIN)*(HUMI_RANG
 // ---- NETWORK ----
 struct WifiCred { const char* ssid; const char* pass; };
 const WifiCred WIFI_NETWORKS[] = {
+  { "Bawal Connect! 5g", "12345678" },   // renamed hotspot (all 3 devices join this)
   { "Bawal  Connect!", "@Cute@@KamE" },
   { "pd-shelvy",       "12345678" },
   { "shelvyapp",       "PUT_SHELVYAPP_PASSWORD_HERE" },
