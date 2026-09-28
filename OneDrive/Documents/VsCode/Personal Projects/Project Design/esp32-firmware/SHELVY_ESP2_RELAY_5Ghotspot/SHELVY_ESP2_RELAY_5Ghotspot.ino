@@ -1,13 +1,11 @@
-// SHELVY_ESP2_RELAY_25.ino
-// ESP32 #2 = RELAY NODE (buck, common ground with 12V).
-//   - Powered by BUCK from the 12V PSU (common ground -> relay switches)
-//   - FETCHES the temperature from the backend (published by ESP1)
-//   - Runs the 25.0C + 30s-off control, drives the relay
-//   - Has NO sensor -> no analog pins to corrupt
+// SHELVY_ESP2_RELAY_5Ghotspot.ino
+// SAME as SHELVY_ESP2_RELAY_25, ONLY the WiFi is different:
+//   -> connects to the PHONE HOTSPOT "Bawal Connect! 5g" (school / venue).
+//   Flash THIS version when running off the phone hotspot.
+//   (Flash the plain SHELVY_ESP2_RELAY_25 at home for the house "Bawal  Connect!".)
 //
-// SETPOINT = 25.0C: since the chamber is ~26.5C, cooling runs ACTIVELY until
-// it hits 25.0C, then clicks OFF for 30s, then cools again. This actually
-// demonstrates the Peltier switching (unlike 27.5 which sits off at 26.5).
+// ESP32 #2 = RELAY NODE. Fetches temp from backend, drives the BLUE OPTO relay.
+// SETPOINT = 25.0C (cools until 25, off 30s, repeat).
 //
 // WIRING (BLUE 6-CH OPTO-ISOLATED board, 2 grounds):
 //   Input header (8-pin):  IN1->GPIO32  IN2->GPIO33   VCC->ESP32 5V   GND->ESP32 GND
@@ -33,20 +31,20 @@ const int RELAY_PIN[2] = { PIN_PELTIER_A, PIN_PELTIER_B };
 // ---- CONTROL ----
 const float    TEMP_SETPOINT_C = 25.0;    // cool until 25.0C, then OFF 30s
 const uint32_t RELAY_OFF_MS    = 30000;   // 30s off when 25.0C reached
-const uint32_t FETCH_MS        = 1500;    // fetch temp every 1.5s (tighter link)
-const uint32_t DATA_STALE_MS   = 30000;   // if temp older than 30s -> treat as no data
+const uint32_t FETCH_MS        = 1500;    // fetch temp every 1.5s
+const uint32_t DATA_STALE_MS   = 30000;   // if temp older than 30s -> no data
 
-// ---- NETWORK ----
+// ---- NETWORK (HOTSPOT version) ----
 struct WifiCred { const char* ssid; const char* pass; };
 const WifiCred WIFI_NETWORKS[] = {
-  { "Bawal  Connect!", "@Cute@@KamE" },   // HOUSE 2.4GHz (main network)
-  { "pd-shelvy",       "12345678" },       // backup
+  { "Bawal Connect! 5g", "12345678" },   // PHONE HOTSPOT (school / venue)
+  { "pd-shelvy",         "12345678" },    // backup
 };
 const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS)/sizeof(WIFI_NETWORKS[0]);
 WiFiMulti wifiMulti;
 const char* BACKEND_URL      = "https://shelvy-backend.vercel.app";
-const char* SENSOR_DEVICE_ID = "esp32-01";  // ESP1 publishes here (we FETCH temp here)
-const char* APP_DEVICE_ID    = "esp32-01";  // we add the peltier state to the same device the app reads
+const char* SENSOR_DEVICE_ID = "esp32-01";
+const char* APP_DEVICE_ID    = "esp32-01";
 const char* DEVICE_SECRET    = "dev-device-secret-please-change";
 
 bool     g_loadOn[2] = { true, true };
@@ -65,7 +63,6 @@ void relayInit(){
 
 bool isHttps(){ return strncmp(BACKEND_URL,"https://",8)==0; }
 
-// fetch latest temperature + humidity from the sensor channel
 bool fetchTemp(float &t, float &h){
   if(WiFi.status()!=WL_CONNECTED) return false;
   HTTPClient http; String url = String(BACKEND_URL) + "/api/readings/" + SENSOR_DEVICE_ID + "/latest";
@@ -91,7 +88,6 @@ bool fetchTemp(float &t, float &h){
   return good;
 }
 
-// publish the FULL record (temp + humidity + peltier state) to the APP's device
 bool publishState(float t, float h){
   if(WiFi.status()!=WL_CONNECTED) return false;
   HTTPClient http; String url = String(BACKEND_URL) + "/api/readings/" + APP_DEVICE_ID;
@@ -117,7 +113,7 @@ void setup(){
   wifi_country_t country = { "PH", 1, 13, 0, WIFI_COUNTRY_POLICY_MANUAL };
   esp_wifi_set_country(&country);
   for(int i=0;i<WIFI_NETWORK_COUNT;i++) wifiMulti.addAP(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].pass);
-  Serial.println("[ESP2] RELAY NODE (25.0C) - fetches temp from backend, drives relay");
+  Serial.println("[ESP2] RELAY NODE (25.0C, HOTSPOT) - fetches temp, drives relay");
 }
 
 uint32_t lastFetch=0, lastGood=0, lastPub=0;
@@ -130,7 +126,6 @@ void loop(){
     if(!was){ Serial.print("[WIFI] "); Serial.println(WiFi.SSID()); was=true; }
   } else { was=false; Serial.println("[WIFI] searching..."); }
 
-  // fetch temp + humidity every FETCH_MS
   if(millis()-lastFetch >= FETCH_MS){
     lastFetch=millis();
     float t,h;
@@ -141,7 +136,6 @@ void loop(){
   bool haveData = (lastGood!=0) && (millis()-lastGood <= DATA_STALE_MS) && !isnan(g_temp);
 
   if(!haveData){
-    // no fresh temp -> safe default: cooling ON (NC de-energized)
     setBoth(true); g_resting=false;
     Serial.println("[CTRL] NO DATA -> cooling ON (safe)");
   } else if(g_resting){
@@ -158,8 +152,6 @@ void loop(){
     }
   }
 
-  // publish full record to the APP device: IMMEDIATELY on a peltier change
-  // (so the app notifies instantly), otherwise every 3s to keep it fresh
   bool changed = (g_loadOn[0]!=prevP1) || (g_loadOn[1]!=prevP2);
   if(changed || millis()-lastPub >= 3000){
     lastPub=millis();

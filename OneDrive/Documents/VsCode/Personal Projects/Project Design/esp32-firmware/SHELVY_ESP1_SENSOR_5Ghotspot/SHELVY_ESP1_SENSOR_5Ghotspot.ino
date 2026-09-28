@@ -1,16 +1,16 @@
-// SHELVY_ESP1_SENSOR.ino
+// SHELVY_ESP1_SENSOR_5Ghotspot.ino
+// SAME as SHELVY_ESP1_SENSOR, ONLY the WiFi is different:
+//   -> connects to the PHONE HOTSPOT "Bawal Connect! 5g" (school / venue).
+//   Flash THIS version when running off the phone hotspot.
+//   (Flash the plain SHELVY_ESP1_SENSOR at home for the house "Bawal  Connect!".)
+//
 // ESP32 #1 = SENSOR NODE (isolated, clean).
 //   - Powered by POWER BANK (isolated ground -> clean analog reading)
-//   - Reads DFR0588 analog SHT30
-//   - Publishes temperature + humidity to the backend (device esp32-01)
-//   - Has NO relay. Its ONLY job is a clean reading + publish.
-//
-// The relay node (ESP2) fetches this data wirelessly -> no wire between the two
-// ESP32s -> the noisy 12V/relay ground can NEVER reach this clean sensor.
+//   - Reads DFR0588 analog SHT30, publishes temp+humidity to backend (esp32-01)
 //
 // WIRING:
 //   Sensor: VCC->3V3(LDO)  T->GPIO34  RH->GPIO35  GND->GND
-//   Power : POWER BANK -> ESP32 USB-C  (isolated, do NOT tie to 12V ground)
+//   Power : POWER BANK -> ESP32 USB-C
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -34,19 +34,19 @@ const int ADC_SAMPLES = 41, ADC_TRIM = 8;
 float voltsToTempC(float v){ return TEMP_RANGE_MIN + (v-V_OUT_MIN)*(TEMP_RANGE_MAX-TEMP_RANGE_MIN)/(V_OUT_MAX-V_OUT_MIN) + TEMP_CAL_OFFSET; }
 float voltsToHumidity(float v){ return HUMI_RANGE_MIN + (v-V_OUT_MIN)*(HUMI_RANGE_MAX-HUMI_RANGE_MIN)/(V_OUT_MAX-V_OUT_MIN) + HUMI_CAL_OFFSET; }
 
-// ---- NETWORK ----
+// ---- NETWORK (HOTSPOT version) ----
 struct WifiCred { const char* ssid; const char* pass; };
 const WifiCred WIFI_NETWORKS[] = {
-  { "Bawal  Connect!", "@Cute@@KamE" },   // HOUSE 2.4GHz (main network)
-  { "pd-shelvy",       "12345678" },       // backup
+  { "Bawal Connect! 5g", "12345678" },   // PHONE HOTSPOT (school / venue)
+  { "pd-shelvy",         "12345678" },    // backup
 };
 const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS)/sizeof(WIFI_NETWORKS[0]);
 WiFiMulti wifiMulti;
 const char* BACKEND_URL   = "https://shelvy-backend.vercel.app";
-const char* DEVICE_ID     = "esp32-01";   // publishes straight to the app's device -> sensor shows even with relay ESP32 OFF
+const char* DEVICE_ID     = "esp32-01";
 const char* DEVICE_SECRET = "dev-device-secret-please-change";
-const uint32_t SAMPLE_MS  = 1000;   // read every 1s
-const uint32_t PUBLISH_MS = 1500;   // publish every 1.5s (tighter link)
+const uint32_t SAMPLE_MS  = 1000;
+const uint32_t PUBLISH_MS = 1500;
 
 float readVolts(int pin){
   uint16_t buf[64]; int n = ADC_SAMPLES; if(n>64)n=64;
@@ -84,7 +84,7 @@ void setup(){
   wifi_country_t country = { "PH", 1, 13, 0, WIFI_COUNTRY_POLICY_MANUAL };
   esp_wifi_set_country(&country);
   for(int i=0;i<WIFI_NETWORK_COUNT;i++) wifiMulti.addAP(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].pass);
-  Serial.println("[ESP1] SENSOR NODE - reads SHT30, publishes to backend");
+  Serial.println("[ESP1] SENSOR NODE (HOTSPOT) - reads SHT30, publishes to backend");
 }
 
 uint32_t lastPub=0;
